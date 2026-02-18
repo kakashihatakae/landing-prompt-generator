@@ -236,31 +236,159 @@ export default function Home() {
           </div>
 
           {/* Preview Image / Illustration */}
-          <div
-            className={`mt-16 md:mt-24 relative transition-all duration-1000 delay-500 ${
-              heroLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-            }`}
-          >
-            <div className="relative mx-auto max-w-4xl">
+          <div className="mt-16 md:mt-24 relative">
+            <div className="relative mx-auto max-w-5xl">
               <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl blur-2xl" />
-              <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-2xl overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-200/50 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-950/50">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                  <div className="flex-1 text-center text-xs text-slate-400">LumeosAI Dashboard</div>
+              
+              {/* Dashboard Mockup */}
+              <div className="relative bg-slate-950 rounded-xl border border-slate-800 shadow-2xl overflow-hidden">
+                {/* App Header */}
+                <div className="flex items-center justify-between px-4 h-12 border-b border-slate-800 bg-slate-950">
+                  <span className="text-sm font-medium text-white">Landing Page Generator</span>
+                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-xs text-white font-medium">SH</div>
                 </div>
-                <div className="p-8 grid grid-cols-3 gap-4">
-                  <div className="col-span-1 space-y-3">
-                    <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg" />
-                    <div className="h-8 bg-slate-100 dark:bg-slate-800 rounded-lg w-3/4" />
-                    <div className="h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg" />
+                
+                {/* Main Content Area */}
+                <div className="flex h-[420px]">
+                  {/* Left Sidebar */}
+                  <div className="w-48 border-r border-slate-800 bg-slate-950/50 p-4 hidden sm:block">
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="text-xs font-semibold text-slate-400 tracking-wider">PROJECTS</span>
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30">
+                      <div className="w-4 h-4 rounded bg-blue-500/50" />
+                      <span className="text-xs text-white truncate">landing generator</span>
+                    </div>
                   </div>
-                  <div className="col-span-2 space-y-4">
-                    <div className="h-24 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="h-20 bg-slate-50 dark:bg-slate-800/50 rounded-lg" />
-                      <div className="h-20 bg-slate-50 dark:bg-slate-800/50 rounded-lg" />
+
+                  {/* Center Editor */}
+                  <div className="flex-1 bg-slate-950 p-4 overflow-hidden">
+                    {/* Editor Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-white">landing generator</span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-xs text-slate-400 border border-slate-700">Draft</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          Last saved: Just now
+                        </span>
+                        <div className="px-3 py-1.5 rounded-lg bg-blue-600/20 border border-blue-500/30 text-xs text-blue-400 flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                          Save
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Global Prompt Section */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                          <span className="text-xs font-semibold text-white tracking-wider">GLOBAL PROMPT</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            Copy
+                          </span>
+                          <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            Clear
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mb-2">High-level instructions for the landing page generator</p>
+                      <div className="relative">
+                        <div className="w-full h-24 rounded-lg bg-slate-900/50 border border-slate-800 p-3">
+                          <p className="text-xs text-slate-400 leading-relaxed">Create a modern saas landing page with clean design, clear CTAs, and modern aesthetics...</p>
+                        </div>
+                        <span className="absolute bottom-2 right-3 text-xs text-slate-600">623 chars</span>
+                      </div>
+                    </div>
+
+                    {/* Template Buttons */}
+                    <div className="flex items-center gap-2 mb-4 overflow-hidden">
+                      <span className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap">
+                        <span className="text-slate-500">+</span> Modern SaaS
+                      </span>
+                      <span className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap">
+                        <span className="text-slate-500">+</span> E-commerce
+                      </span>
+                      <span className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center gap-1 whitespace-nowrap">
+                        <span className="text-slate-500">+</span> Portfolio
+                      </span>
+                    </div>
+
+                    {/* Sections Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        <span className="text-xs font-semibold text-white tracking-wider">SECTIONS</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-800 text-xs text-slate-400">6</span>
+                      </div>
+                      <div className="px-3 py-1.5 rounded-lg bg-blue-600 text-xs text-white flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                        Add Section
+                      </div>
+                    </div>
+
+                    {/* Section Cards */}
+                    <div className="space-y-2">
+                      {["Hero", "Features", "Testimonials", "Pricing", "CTA"].map((section, i) => (
+                        <div key={section} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-slate-900/50 border border-slate-800">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="w-1 h-1 rounded-full bg-slate-600" />
+                              <div className="w-1 h-1 rounded-full bg-slate-600" />
+                              <div className="w-1 h-1 rounded-full bg-slate-600" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-white">{section}</span>
+                                <span className="text-xs text-slate-500">{section}</span>
+                                {i < 2 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                              </div>
+                              <p className="text-xs text-slate-500 truncate max-w-[200px]">
+                                {section === "Hero" ? "Hero section has a line that describes this portal..." : 
+                                 section === "Features" ? "Highlight the below features 1. Organize thoughts..." :
+                                 `Define your ${section.toLowerCase()} section content`}
+                              </p>
+                            </div>
+                          </div>
+                          <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right Preview Panel */}
+                  <div className="w-56 border-l border-slate-800 bg-slate-950/30 p-4 hidden md:block">
+                    <div className="flex items-center gap-2 mb-4">
+                      <svg className="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      <span className="text-xs font-semibold text-white tracking-wider">PREVIEW</span>
+                    </div>
+                    <div className="mb-3">
+                      <span className="text-xs text-slate-500 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        Copy
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono leading-relaxed">
+                      <p className="text-slate-500 mb-2"># Global Instructions</p>
+                      <p className="mb-2">Create a modern saas landing page with...</p>
+                      <p className="text-slate-500 mb-2">---</p>
+                      <p className="text-slate-500 mb-2"># Landing Page Sections</p>
+                      <p className="text-slate-500 mb-1">## 1. Hero</p>
+                    </div>
+                    <div className="mt-4 px-4 py-2 rounded-lg bg-blue-600/20 border border-blue-500/30 text-xs text-blue-400 flex items-center justify-center gap-2">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      Generate with AI
                     </div>
                   </div>
                 </div>
