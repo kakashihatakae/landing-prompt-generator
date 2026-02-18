@@ -211,20 +211,6 @@ export function ProjectSidebar() {
                   )}
                 </div>
 
-                {/* Status Dot */}
-                {project.status === "ready" && (
-                  <div
-                    className="flex-shrink-0 w-2 h-2 rounded-full bg-secondary"
-                    title="Ready"
-                  />
-                )}
-                {project.status === "draft" && (
-                  <div
-                    className="flex-shrink-0 w-2 h-2 rounded-full bg-muted-foreground/50"
-                    title="Draft"
-                  />
-                )}
-
                 {/* Actions Menu */}
                 {editingId !== project.id && (
                   <DropdownMenu>
@@ -279,16 +265,6 @@ export function ProjectSidebar() {
       <div className="p-3 border-t border-border">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{projects.length} project{projects.length !== 1 ? "s" : ""}</span>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <Circle className="h-2 w-2 fill-secondary text-secondary" />
-              <span>Ready</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Circle className="h-2 w-2 fill-muted-foreground/50 text-muted-foreground/50" />
-              <span>Draft</span>
-            </div>
-          </div>
         </div>
       </div>
 

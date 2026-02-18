@@ -32,10 +32,13 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [description, setDescription] = useState(section.description);
   const [imageUrl, setImageUrl] = useState(section.image_url || "");
-  const [imageDescription, setImageDescription] = useState(section.image_description || "");
+  const [imageDescription, setImageDescription] = useState(
+    section.image_description || "",
+  );
   const [styleNotes, setStyleNotes] = useState(section.style_notes || "");
-  const [animationNotes, setAnimationNotes] = useState(section.animation_notes || "");
-  const [isSaving, setIsSaving] = useState(false);
+  const [animationNotes, setAnimationNotes] = useState(
+    section.animation_notes || "",
+  );
 
   // Auto-save debounce
   useEffect(() => {
@@ -47,7 +50,6 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
         styleNotes !== (section.style_notes || "") ||
         animationNotes !== (section.animation_notes || "")
       ) {
-        setIsSaving(true);
         updateSection(projectId, section.id, {
           description,
           image_url: imageUrl || null,
@@ -55,7 +57,6 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
           style_notes: styleNotes || null,
           animation_notes: animationNotes || null,
         });
-        setTimeout(() => setIsSaving(false), 300);
       }
     }, 500);
 
@@ -81,13 +82,21 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
   }, [projectId, section.id, duplicateSection]);
 
   const handleDelete = useCallback(() => {
-    if (confirm(`Are you sure you want to delete the "${section.name}" section?`)) {
+    if (
+      confirm(`Are you sure you want to delete the "${section.name}" section?`)
+    ) {
       deleteSection(projectId, section.id);
     }
   }, [projectId, section.id, section.name, deleteSection]);
 
-  const previewText = section.description.slice(0, 80) + (section.description.length > 80 ? "..." : "");
-  const hasContent = section.description || section.image_url || section.style_notes || section.animation_notes;
+  const previewText =
+    section.description.slice(0, 80) +
+    (section.description.length > 80 ? "..." : "");
+  const hasContent =
+    section.description ||
+    section.image_url ||
+    section.style_notes ||
+    section.animation_notes;
 
   return (
     <div
@@ -110,14 +119,23 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
         {/* Section Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-medium text-foreground">{section.name}</h3>
-            <span className="text-xs text-muted-foreground capitalize">{section.type}</span>
+            <h3 className="text-sm font-medium text-foreground">
+              {section.name}
+            </h3>
+            <span className="text-xs text-muted-foreground capitalize">
+              {section.type}
+            </span>
             {hasContent && (
-              <span className="w-1.5 h-1.5 rounded-full bg-secondary" title="Has content" />
+              <span
+                className="w-1.5 h-1.5 rounded-full bg-secondary"
+                title="Has content"
+              />
             )}
           </div>
           {!isExpanded && section.description && (
-            <p className="text-xs text-muted-foreground truncate mt-0.5">{previewText}</p>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {previewText}
+            </p>
           )}
         </div>
 
@@ -142,13 +160,6 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
       {/* Expanded Content */}
       {isExpanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-border">
-          {/* Saving indicator */}
-          <div className="flex justify-end pt-2">
-            {isSaving && (
-              <span className="text-xs text-primary animate-pulse">Saving...</span>
-            )}
-          </div>
-
           {/* Section Description */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">

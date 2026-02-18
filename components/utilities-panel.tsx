@@ -94,7 +94,6 @@ function generateJSON(project: Project): string {
 
 export function UtilitiesPanel({ project }: UtilitiesPanelProps) {
   const [copied, setCopied] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [showResponseModal, setShowResponseModal] = useState(false);
@@ -206,19 +205,6 @@ export function UtilitiesPanel({ project }: UtilitiesPanelProps) {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Toggle & Actions */}
           <div className="p-3 border-b border-border flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowPreview(!showPreview)}
-              className="h-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-            >
-              {showPreview ? (
-                <EyeOff className="h-3.5 w-3.5 mr-1.5" />
-              ) : (
-                <Eye className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              {showPreview ? "Hide" : "Show"}
-            </Button>
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -243,7 +229,6 @@ export function UtilitiesPanel({ project }: UtilitiesPanelProps) {
           </div>
 
           {/* Preview Area */}
-          {showPreview && (
             <div className="flex-1 overflow-hidden">
               <Textarea
                 value={hasContent ? fullPrompt : "Add content to see preview..."}
@@ -251,7 +236,6 @@ export function UtilitiesPanel({ project }: UtilitiesPanelProps) {
                 className="h-full min-h-[300px] bg-card border-0 text-foreground text-sm font-mono resize-none focus:ring-0"
               />
             </div>
-          )}
 
           {/* Generate Button - Prominent */}
           <div className="p-3 border-t border-border bg-primary/5">
@@ -277,69 +261,6 @@ export function UtilitiesPanel({ project }: UtilitiesPanelProps) {
               <p className="text-xs text-destructive mt-2 text-center">{error}</p>
             )}
           </div>
-
-          {/* Stats
-          <div className="p-3 border-t border-border bg-card/50">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-2 rounded-md bg-background border border-border">
-                <div className="text-lg font-semibold text-foreground">
-                  {project.sections.length}
-                </div>
-                <div className="text-xs text-muted-foreground">Sections</div>
-              </div>
-              <div className="p-2 rounded-md bg-background border border-border">
-                <div className="text-lg font-semibold text-foreground">
-                  {fullPrompt.split(/\s+/).filter(Boolean).length.toLocaleString()}
-                </div>
-                <div className="text-xs text-muted-foreground">Words</div>
-              </div>
-              <div className="p-2 rounded-md bg-background border border-border">
-                <div className="text-lg font-semibold text-foreground">
-                  {fullPrompt.length.toLocaleString()}
-                </div>
-                <div className="text-xs text-muted-foreground">Chars</div>
-              </div>
-            </div>
-          </div> */}
-
-          {/* Export Actions
-          <div className="p-3 border-t border-border space-y-2">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              Export
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadMarkdown}
-                disabled={!hasContent}
-                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <Download className="h-3.5 w-3.5 mr-1.5" />
-                Markdown
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownloadJSON}
-                disabled={!hasContent}
-                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <FileCode className="h-3.5 w-3.5 mr-1.5" />
-                JSON
-              </Button>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyJSON}
-              disabled={!hasContent}
-              className="w-full border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <Copy className="h-3.5 w-3.5 mr-1.5" />
-              Copy as JSON
-            </Button>
-          </div> */}
         </div>
       </aside>
 
