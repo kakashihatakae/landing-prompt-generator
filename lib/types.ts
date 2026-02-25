@@ -9,6 +9,7 @@ export type SectionType =
 
 export interface Section {
   id: string;
+  pageId: string;
   name: string;
   type: SectionType;
   description: string;
@@ -19,12 +20,24 @@ export interface Section {
   order: number;
 }
 
+export interface Page {
+  id: string;
+  projectId: string;
+  name: string;
+  pageDescription: string;
+  isLandingPage: boolean;
+  pageOrder: number;
+  sections: Section[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Project {
   id: string;
   name: string;
   status: 'draft' | 'ready';
   globalPrompt: string;
-  sections: Section[];
+  pages: Page[];
   createdAt: number;
   updatedAt: number;
 }
@@ -32,6 +45,7 @@ export interface Project {
 export interface ProjectStore {
   projects: Project[];
   activeProjectId: string | null;
+  activePageId: string | null;
   
   // Project actions
   createProject: (name: string) => string;
@@ -40,15 +54,22 @@ export interface ProjectStore {
   duplicateProject: (id: string) => void;
   setActiveProject: (id: string | null) => void;
   
+  // Page actions
+  addPage: (projectId: string, name: string) => void;
+  updatePage: (projectId: string, pageId: string, updates: Partial<Page>) => void;
+  deletePage: (projectId: string, pageId: string) => void;
+  reorderPages: (projectId: string, pageIds: string[]) => void;
+  setActivePage: (id: string | null) => void;
+  
   // Section actions
-  addSection: (projectId: string, section: Omit<Section, 'id' | 'order'>) => void;
-  updateSection: (projectId: string, sectionId: string, updates: Partial<Section>) => void;
-  deleteSection: (projectId: string, sectionId: string) => void;
-  duplicateSection: (projectId: string, sectionId: string) => void;
-  reorderSections: (projectId: string, sectionIds: string[]) => void;
+  addSection: (projectId: string, pageId: string, section: Omit<Section, 'id' | 'order' | 'pageId'>) => void;
+  updateSection: (projectId: string, pageId: string, sectionId: string, updates: Partial<Section>) => void;
+  deleteSection: (projectId: string, pageId: string, sectionId: string) => void;
+  duplicateSection: (projectId: string, pageId: string, sectionId: string) => void;
+  reorderSections: (projectId: string, pageId: string, sectionIds: string[]) => void;
 }
 
-export const DEFAULT_SECTIONS: Omit<Section, 'id' | 'order'>[] = [
+export const DEFAULT_SECTIONS: Omit<Section, 'id' | 'order' | 'pageId'>[] = [
   {
     name: 'Hero',
     type: 'hero',

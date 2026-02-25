@@ -24,20 +24,21 @@ import {
 
 interface SectionCardProps {
   projectId: string;
+  pageId: string;
   section: Section;
 }
 
-export function SectionCard({ projectId, section }: SectionCardProps) {
+export function SectionCard({ projectId, pageId, section }: SectionCardProps) {
   const { updateSection, deleteSection, duplicateSection } = useProjectStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [description, setDescription] = useState(section.description);
-  const [imageUrl, setImageUrl] = useState(section.image_url || "");
+  const [imageUrl, setImageUrl] = useState(section.imageUrl || "");
   const [imageDescription, setImageDescription] = useState(
-    section.image_description || "",
+    section.imageDescription || "",
   );
-  const [styleNotes, setStyleNotes] = useState(section.style_notes || "");
+  const [styleNotes, setStyleNotes] = useState(section.styleNotes || "");
   const [animationNotes, setAnimationNotes] = useState(
-    section.animation_notes || "",
+    section.animationNotes || "",
   );
 
   // Auto-save debounce
@@ -45,17 +46,17 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
     const timer = setTimeout(() => {
       if (
         description !== section.description ||
-        imageUrl !== (section.image_url || "") ||
-        imageDescription !== (section.image_description || "") ||
-        styleNotes !== (section.style_notes || "") ||
-        animationNotes !== (section.animation_notes || "")
+        imageUrl !== (section.imageUrl || "") ||
+        imageDescription !== (section.imageDescription || "") ||
+        styleNotes !== (section.styleNotes || "") ||
+        animationNotes !== (section.animationNotes || "")
       ) {
-        updateSection(projectId, section.id, {
+        updateSection(projectId, pageId, section.id, {
           description,
-          image_url: imageUrl || null,
-          image_description: imageDescription || null,
-          style_notes: styleNotes || null,
-          animation_notes: animationNotes || null,
+          imageUrl: imageUrl || null,
+          imageDescription: imageDescription || null,
+          styleNotes: styleNotes || null,
+          animationNotes: animationNotes || null,
         });
       }
     }, 500);
@@ -68,35 +69,36 @@ export function SectionCard({ projectId, section }: SectionCardProps) {
     styleNotes,
     animationNotes,
     projectId,
+    pageId,
     section.id,
     section.description,
-    section.image_url,
-    section.image_description,
-    section.style_notes,
-    section.animation_notes,
+    section.imageUrl,
+    section.imageDescription,
+    section.styleNotes,
+    section.animationNotes,
     updateSection,
   ]);
 
   const handleDuplicate = useCallback(() => {
-    duplicateSection(projectId, section.id);
-  }, [projectId, section.id, duplicateSection]);
+    duplicateSection(projectId, pageId, section.id);
+  }, [projectId, pageId, section.id, duplicateSection]);
 
   const handleDelete = useCallback(() => {
     if (
       confirm(`Are you sure you want to delete the "${section.name}" section?`)
     ) {
-      deleteSection(projectId, section.id);
+      deleteSection(projectId, pageId, section.id);
     }
-  }, [projectId, section.id, section.name, deleteSection]);
+  }, [projectId, pageId, section.id, section.name, deleteSection]);
 
   const previewText =
     section.description.slice(0, 80) +
     (section.description.length > 80 ? "..." : "");
   const hasContent =
     section.description ||
-    section.image_url ||
-    section.style_notes ||
-    section.animation_notes;
+    section.imageUrl ||
+    section.styleNotes ||
+    section.animationNotes;
 
   return (
     <div

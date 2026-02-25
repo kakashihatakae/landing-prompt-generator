@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useCallback } from "react";
-import { Copy, Download, Check, FileCode, Eye, EyeOff, Send, Loader2, Code, X } from "lucide-react";
-import { Project, Section } from "@/lib/store";
+import { Copy, Download, Check, FileCode, Send, Loader2, Code, X } from "lucide-react";
+import { Project, Page } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -17,52 +17,84 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface UtilitiesPanelProps {
-  project: Project;
-}
-
-function generateFullPrompt(project: Project): string {
-  const sections = [...project.sections]
+function generatePagePrompt(page: Page): string {
+  const sections = [...page.sections]
     .sort((a, b) => a.order - b.order)
     .filter((s) => s.description);
 
   let prompt = "";
 
-  // Global prompt
-  if (project.globalPrompt.trim()) {
-    prompt += `# Global Instructions\n\n${project.globalPrompt.trim()}\n\n`;
-    prompt += `---\n\n`;
+  // Page header
+  prompt += `## ${page.name}\n\n`;
+
+  if (page.isLandingPage) {
+    prompt += `*This is the main landing page*\n\n`;
+  }
+
+  // Page description
+  if (page.pageDescription?.trim()) {
+    prompt += `**Page Description:** ${page.pageDescription.trim()}\n\n`;
   }
 
   // Sections
   if (sections.length > 0) {
-    prompt += `# Landing Page Sections\n\n`;
-
     sections.forEach((section, index) => {
-      prompt += `## ${index + 1}. ${section.name}\n\n`;
+      prompt += `### ${index + 1}. ${section.name}\n\n`;
       prompt += `${section.description.trim()}\n\n`;
 
-      if (section.image_url || section.image_description) {
-        prompt += `### Image\n`;
-        if (section.image_url) {
-          prompt += `- URL: ${section.image_url}\n`;
+      if (section.imageUrl || section.imageDescription) {
+        prompt += `**Image**\n`;
+        if (section.imageUrl) {
+          prompt += `- URL: ${section.imageUrl}\n`;
         }
-        if (section.image_description) {
-          prompt += `- Description: ${section.image_description}\n`;
+        if (section.imageDescription) {
+          prompt += `- Description: ${section.imageDescription}\n`;
         }
         prompt += `\n`;
       }
 
-      if (section.style_notes) {
-        prompt += `### Style\n${section.style_notes}\n\n`;
+      if (section.styleNotes) {
+        prompt += `**Style**\n${section.styleNotes}\n\n`;
       }
 
-      if (section.animation_notes) {
-        prompt += `### Animations\n${section.animation_notes}\n\n`;
+      if (section.animationNotes) {
+        prompt += `**Animations**\n${section.animationNotes}\n\n`;
       }
 
       if (index < sections.length - 1) {
         prompt += `---\n\n`;
+      }
+    });
+  } else {
+    prompt += `*No sections defined for this page yet.*\n\n`;
+  }
+
+  return prompt.trim();
+}
+
+function generateFullPrompt(project: Project): string {
+  const sortedPages = [...project.pages].sort((a, b) => a.pageOrder - b.pageOrder);
+  
+  let prompt = "";
+
+  // Title
+  prompt += `# ${project.name}\n\n`;
+
+  // Global prompt
+  if (project.globalPrompt.trim()) {
+    prompt += `## Global Design System\n\n${project.globalPrompt.trim()}\n\n`;
+    prompt += `---\n\n`;
+  }
+
+  // Pages
+  if (sortedPages.length > 0) {
+    prompt += `## Pages\n\n`;
+
+    sortedPages.forEach((page, index) => {
+      prompt += generatePagePrompt(page);
+      
+      if (index < sortedPages.length - 1) {
+        prompt += `\n\n---\n\n`;
       }
     });
   }
@@ -71,25 +103,37 @@ function generateFullPrompt(project: Project): string {
 }
 
 function generateJSON(project: Project): string {
+  const sortedPages = [...project.pages].sort((a, b) => a.pageOrder - b.pageOrder);
+  
   const exportData = {
     name: project.name,
     status: project.status,
     globalPrompt: project.globalPrompt,
-    sections: [...project.sections]
-      .sort((a, b) => a.order - b.order)
-      .map((s) => ({
-        name: s.name,
-        type: s.type,
-        description: s.description,
-        imageUrl: s.image_url,
-        imageDescription: s.image_description,
-        styleNotes: s.style_notes,
-        animationNotes: s.animation_notes,
-      })),
+    pages: sortedPages.map((page) => ({
+      name: page.name,
+      description: page.pageDescription,
+      isLandingPage: page.isLandingPage,
+      pageOrder: page.pageOrder,
+      sections: [...page.sections]
+        .sort((a, b) => a.order - b.order)
+        .map((s) => ({
+          name: s.name,
+          type: s.type,
+          description: s.description,
+          imageUrl: s.imageUrl,
+          imageDescription: s.imageDescription,
+          styleNotes: s.styleNotes,
+          animationNotes: s.animationNotes,
+        })),
+    })),
     exportedAt: new Date().toISOString(),
   };
 
   return JSON.stringify(exportData, null, 2);
+}
+
+interface UtilitiesPanelProps {
+  project: Project;
 }
 
 export function UtilitiesPanel({ project }: UtilitiesPanelProps) {

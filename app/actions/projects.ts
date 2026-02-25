@@ -2,23 +2,27 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { Project, Section, ProjectInsert, SectionInsert } from "@/lib/database.types";
+import type { Project, Page, Section, ProjectInsert, PageInsert, SectionInsert } from "@/lib/database.types";
 
 // Types for frontend compatibility
-export interface ProjectWithSections extends Project {
+export interface PageWithSections extends Page {
   sections: Section[];
 }
 
-// Helper to convert DB project to frontend format
-function formatProject(project: Project, sections: Section[] = []): ProjectWithSections {
+export interface ProjectWithPages extends Project {
+  pages: PageWithSections[];
+}
+
+// Helper to convert DB data to frontend format
+function formatPage(page: Page, sections: Section[] = []): PageWithSections {
   return {
-    ...project,
+    ...page,
     sections: sections.sort((a, b) => a.order - b.order),
   };
 }
 
-// Get all projects for the current user with their sections
-export async function getProjects(): Promise<ProjectWithSections[]> {
+// Get all projects for the current user with their pages and sections
+export async function getProjects(): Promise<ProjectWithPages[]> {
   const supabase = await createClient();
   
   const { data: projects, error: projectsError } = await supabase
@@ -35,33 +39,57 @@ export async function getProjects(): Promise<ProjectWithSections[]> {
     return [];
   }
 
-  // Fetch sections for all projects
+  // Fetch pages for all projects
+  const { data: pages, error: pagesError } = await supabase
+    .from("pages")
+    .select("*")
+    .in("project_id", projects.map((p) => p.id))
+    .order("page_order", { ascending: true });
+
+  if (pagesError) {
+    console.error("Error fetching pages:", pagesError);
+    throw new Error("Failed to fetch pages");
+  }
+
+  // Fetch sections for all pages
+  const pageIds = (pages || []).map((p) => p.id);
   const { data: sections, error: sectionsError } = await supabase
     .from("sections")
     .select("*")
-    .in("project_id", projects.map((p) => p.id));
+    .in("page_id", pageIds)
+    .order("order", { ascending: true });
 
   if (sectionsError) {
     console.error("Error fetching sections:", sectionsError);
     throw new Error("Failed to fetch sections");
   }
 
-  // Group sections by project
-  const sectionsByProject = (sections || []).reduce((acc, section) => {
-    if (!acc[section.project_id]) {
-      acc[section.project_id] = [];
+  // Group sections by page
+  const sectionsByPage = (sections || []).reduce((acc, section) => {
+    if (!acc[section.page_id]) {
+      acc[section.page_id] = [];
     }
-    acc[section.project_id].push(section);
+    acc[section.page_id].push(section);
     return acc;
   }, {} as Record<string, Section[]>);
 
-  return projects.map((project) =>
-    formatProject(project, sectionsByProject[project.id] || [])
-  );
+  // Group pages by project
+  const pagesByProject = (pages || []).reduce((acc, page) => {
+    if (!acc[page.project_id]) {
+      acc[page.project_id] = [];
+    }
+    acc[page.project_id].push(formatPage(page, sectionsByPage[page.id] || []));
+    return acc;
+  }, {} as Record<string, PageWithSections[]>);
+
+  return projects.map((project) => ({
+    ...project,
+    pages: pagesByProject[project.id] || [],
+  }));
 }
 
-// Get a single project with its sections
-export async function getProject(projectId: string): Promise<ProjectWithSections | null> {
+// Get a single project with its pages and sections
+export async function getProject(projectId: string): Promise<ProjectWithPages | null> {
   const supabase = await createClient();
   
   const { data: project, error: projectError } = await supabase
@@ -77,10 +105,22 @@ export async function getProject(projectId: string): Promise<ProjectWithSections
 
   if (!project) return null;
 
+  const { data: pages, error: pagesError } = await supabase
+    .from("pages")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("page_order", { ascending: true });
+
+  if (pagesError) {
+    console.error("Error fetching pages:", pagesError);
+    throw new Error("Failed to fetch pages");
+  }
+
+  const pageIds = (pages || []).map((p) => p.id);
   const { data: sections, error: sectionsError } = await supabase
     .from("sections")
     .select("*")
-    .eq("project_id", projectId)
+    .in("page_id", pageIds)
     .order("order", { ascending: true });
 
   if (sectionsError) {
@@ -88,11 +128,22 @@ export async function getProject(projectId: string): Promise<ProjectWithSections
     throw new Error("Failed to fetch sections");
   }
 
-  return formatProject(project, sections || []);
+  const sectionsByPage = (sections || []).reduce((acc, section) => {
+    if (!acc[section.page_id]) {
+      acc[section.page_id] = [];
+    }
+    acc[section.page_id].push(section);
+    return acc;
+  }, {} as Record<string, Section[]>);
+
+  return {
+    ...project,
+    pages: (pages || []).map((page) => formatPage(page, sectionsByPage[page.id] || [])),
+  };
 }
 
-// Create a new project with default sections
-export async function createProject(name: string): Promise<ProjectWithSections> {
+// Create a new project with a landing page and default sections
+export async function createProject(name: string): Promise<ProjectWithPages> {
   const supabase = await createClient();
   
   // Get current user
@@ -118,8 +169,26 @@ export async function createProject(name: string): Promise<ProjectWithSections> 
     throw new Error("Failed to create project");
   }
 
-  // Create default sections
-  const defaultSections: Omit<SectionInsert, "project_id">[] = [
+  // Create landing page
+  const { data: landingPage, error: pageError } = await supabase
+    .from("pages")
+    .insert({
+      project_id: project.id,
+      name: "Landing Page",
+      description: "",
+      is_landing_page: true,
+      page_order: 0,
+    })
+    .select()
+    .single();
+
+  if (pageError) {
+    console.error("Error creating landing page:", pageError);
+    throw new Error("Failed to create landing page");
+  }
+
+  // Create default sections for landing page
+  const defaultSections: Omit<SectionInsert, "page_id">[] = [
     { name: "Hero", type: "hero", description: "", order: 0 },
     { name: "Features", type: "features", description: "", order: 1 },
     { name: "Testimonials", type: "testimonials", description: "", order: 2 },
@@ -128,23 +197,25 @@ export async function createProject(name: string): Promise<ProjectWithSections> 
     { name: "Footer", type: "footer", description: "", order: 5 },
   ];
 
-  const sectionsWithProjectId = defaultSections.map((s) => ({
+  const sectionsWithPageId = defaultSections.map((s) => ({
     ...s,
-    project_id: project.id,
+    page_id: landingPage.id,
   }));
 
   const { data: sections, error: sectionsError } = await supabase
     .from("sections")
-    .insert(sectionsWithProjectId)
+    .insert(sectionsWithPageId)
     .select();
 
   if (sectionsError) {
     console.error("Error creating sections:", sectionsError);
-    // Don't throw, we can still return the project
   }
 
   revalidatePath("/dashboard");
-  return formatProject(project, sections || []);
+  return {
+    ...project,
+    pages: [formatPage(landingPage, sections || [])],
+  };
 }
 
 // Update a project
@@ -187,11 +258,11 @@ export async function deleteProject(projectId: string): Promise<void> {
   revalidatePath("/dashboard");
 }
 
-// Duplicate a project with all its sections
-export async function duplicateProject(projectId: string): Promise<ProjectWithSections> {
+// Duplicate a project with all its pages and sections
+export async function duplicateProject(projectId: string): Promise<ProjectWithPages> {
   const supabase = await createClient();
   
-  // Get the original project with sections
+  // Get the original project with pages and sections
   const original = await getProject(projectId);
   if (!original) {
     throw new Error("Project not found");
@@ -220,26 +291,46 @@ export async function duplicateProject(projectId: string): Promise<ProjectWithSe
     throw new Error("Failed to duplicate project");
   }
 
-  // Duplicate sections
-  if (original.sections.length > 0) {
-    const newSections = original.sections.map((section) => ({
-      project_id: newProject.id,
-      name: section.name,
-      type: section.type,
-      description: section.description,
-      image_url: section.image_url,
-      image_description: section.image_description,
-      style_notes: section.style_notes,
-      animation_notes: section.animation_notes,
-      order: section.order,
-    }));
+  // Duplicate pages and their sections
+  for (const page of original.pages) {
+    const { data: newPage, error: pageError } = await supabase
+      .from("pages")
+      .insert({
+        project_id: newProject.id,
+        name: page.name,
+        description: page.description,
+        is_landing_page: page.is_landing_page,
+        page_order: page.page_order,
+      })
+      .select()
+      .single();
 
-    const { error: sectionsError } = await supabase
-      .from("sections")
-      .insert(newSections);
+    if (pageError) {
+      console.error("Error duplicating page:", pageError);
+      continue;
+    }
 
-    if (sectionsError) {
-      console.error("Error duplicating sections:", sectionsError);
+    // Duplicate sections for this page
+    if (page.sections.length > 0) {
+      const newSections = page.sections.map((section) => ({
+        page_id: newPage.id,
+        name: section.name,
+        type: section.type,
+        description: section.description,
+        image_url: section.image_url,
+        image_description: section.image_description,
+        style_notes: section.style_notes,
+        animation_notes: section.animation_notes,
+        order: section.order,
+      }));
+
+      const { error: sectionsError } = await supabase
+        .from("sections")
+        .insert(newSections);
+
+      if (sectionsError) {
+        console.error("Error duplicating sections:", sectionsError);
+      }
     }
   }
 
@@ -253,18 +344,140 @@ export async function duplicateProject(projectId: string): Promise<ProjectWithSe
   return duplicated;
 }
 
+// ==================== PAGE ACTIONS ====================
+
+// Create a new page
+export async function createPage(
+  projectId: string,
+  name: string
+): Promise<PageWithSections> {
+  const supabase = await createClient();
+  
+  // Get the max page_order for the project
+  const { data: maxOrderData } = await supabase
+    .from("pages")
+    .select("page_order")
+    .eq("project_id", projectId)
+    .order("page_order", { ascending: false })
+    .limit(1)
+    .single();
+
+  const nextOrder = (maxOrderData?.page_order ?? -1) + 1;
+
+  const { data: page, error } = await supabase
+    .from("pages")
+    .insert({
+      project_id: projectId,
+      name,
+      description: "",
+      is_landing_page: false,
+      page_order: nextOrder,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating page:", error);
+    throw new Error("Failed to create page");
+  }
+
+  revalidatePath("/dashboard");
+  return formatPage(page, []);
+}
+
+// Update a page
+export async function updatePage(
+  pageId: string,
+  updates: Partial<Pick<Page, "name" | "description" | "page_order">>
+): Promise<Page> {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from("pages")
+    .update(updates)
+    .eq("id", pageId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating page:", error);
+    throw new Error("Failed to update page");
+  }
+
+  revalidatePath("/dashboard");
+  return data;
+}
+
+// Delete a page (cannot delete landing page)
+export async function deletePage(pageId: string): Promise<void> {
+  const supabase = await createClient();
+  
+  // Check if it's a landing page
+  const { data: page } = await supabase
+    .from("pages")
+    .select("is_landing_page")
+    .eq("id", pageId)
+    .single();
+
+  if (page?.is_landing_page) {
+    throw new Error("Cannot delete the landing page");
+  }
+
+  const { error } = await supabase
+    .from("pages")
+    .delete()
+    .eq("id", pageId);
+
+  if (error) {
+    console.error("Error deleting page:", error);
+    throw new Error("Failed to delete page");
+  }
+
+  revalidatePath("/dashboard");
+}
+
+// Reorder pages
+export async function reorderPages(
+  projectId: string,
+  pageIds: string[]
+): Promise<void> {
+  const supabase = await createClient();
+  
+  const updates = pageIds.map((id, index) => ({
+    id,
+    page_order: index,
+  }));
+
+  for (const update of updates) {
+    const { error } = await supabase
+      .from("pages")
+      .update({ page_order: update.page_order })
+      .eq("id", update.id)
+      .eq("project_id", projectId);
+
+    if (error) {
+      console.error("Error reordering page:", error);
+      throw new Error("Failed to reorder pages");
+    }
+  }
+
+  revalidatePath("/dashboard");
+}
+
+// ==================== SECTION ACTIONS ====================
+
 // Create a new section
 export async function createSection(
-  projectId: string,
-  section: Omit<SectionInsert, "project_id" | "order">
+  pageId: string,
+  section: Omit<SectionInsert, "page_id" | "order">
 ): Promise<Section> {
   const supabase = await createClient();
   
-  // Get the max order for the project
+  // Get the max order for the page
   const { data: maxOrderData } = await supabase
     .from("sections")
     .select("order")
-    .eq("project_id", projectId)
+    .eq("page_id", pageId)
     .order("order", { ascending: false })
     .limit(1)
     .single();
@@ -275,7 +488,7 @@ export async function createSection(
     .from("sections")
     .insert({
       ...section,
-      project_id: projectId,
+      page_id: pageId,
       order: nextOrder,
     })
     .select()
@@ -293,7 +506,7 @@ export async function createSection(
 // Update a section
 export async function updateSection(
   sectionId: string,
-  updates: Partial<Omit<Section, "id" | "project_id" | "created_at" | "updated_at">>
+  updates: Partial<Omit<Section, "id" | "page_id" | "created_at" | "updated_at">>
 ): Promise<Section> {
   const supabase = await createClient();
   
@@ -350,7 +563,7 @@ export async function duplicateSection(sectionId: string): Promise<Section> {
   const { data, error } = await supabase
     .from("sections")
     .insert({
-      project_id: original.project_id,
+      page_id: original.page_id,
       name: `${original.name} (Copy)`,
       type: original.type,
       description: original.description,
@@ -374,12 +587,11 @@ export async function duplicateSection(sectionId: string): Promise<Section> {
 
 // Reorder sections
 export async function reorderSections(
-  projectId: string,
+  pageId: string,
   sectionIds: string[]
 ): Promise<void> {
   const supabase = await createClient();
   
-  // Update each section's order
   const updates = sectionIds.map((id, index) => ({
     id,
     order: index,
@@ -390,7 +602,7 @@ export async function reorderSections(
       .from("sections")
       .update({ order: update.order })
       .eq("id", update.id)
-      .eq("project_id", projectId);
+      .eq("page_id", pageId);
 
     if (error) {
       console.error("Error reordering section:", error);

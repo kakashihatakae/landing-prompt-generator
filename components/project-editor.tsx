@@ -6,6 +6,7 @@ import { Project, useProjectStore } from "@/lib/store";
 import { GlobalPromptEditor } from "@/components/global-prompt-editor";
 import { SectionBuilder } from "@/components/section-builder";
 import { UtilitiesPanel } from "@/components/utilities-panel";
+import { PagesTabs } from "@/components/pages-tabs";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -40,9 +41,21 @@ function formatLastSaved(timestamp: number | null): string {
 }
 
 export function ProjectEditor({ project }: ProjectEditorProps) {
-  const { saveProject, lastSavedAt, hasUnsavedChanges, isLoading } = useProjectStore();
+  const { saveProject, lastSavedAt, hasUnsavedChanges, isLoading, activePageId, setActivePage } = useProjectStore();
   const [isSaving, setIsSaving] = useState(false);
   const [showSavedCheck, setShowSavedCheck] = useState(false);
+
+  // Set first page as active if none selected
+  useEffect(() => {
+    if (!activePageId && project.pages.length > 0) {
+      const sortedPages = [...project.pages].sort((a, b) => a.pageOrder - b.pageOrder);
+      setActivePage(sortedPages[0]?.id || null);
+    }
+  }, [activePageId, project.pages, setActivePage]);
+
+  // Get active page
+  const sortedPages = [...project.pages].sort((a, b) => a.pageOrder - b.pageOrder);
+  const activePage = sortedPages.find((p) => p.id === activePageId) || sortedPages[0];
 
   // Manual save handler
   const handleSave = useCallback(async () => {
@@ -83,6 +96,14 @@ export function ProjectEditor({ project }: ProjectEditorProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleSave]);
+
+  if (!activePage) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-muted-foreground">No pages available</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex min-w-0 bg-background">
@@ -156,14 +177,17 @@ export function ProjectEditor({ project }: ProjectEditorProps) {
           </div>
         </header>
 
+        {/* Pages Tabs */}
+        <PagesTabs project={project} />
+
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-            {/* Global Prompt Editor */}
-            <GlobalPromptEditor project={project} />
+            {/* Global Prompt Editor - only show on landing page */}
+            {activePage.isLandingPage && <GlobalPromptEditor project={project} />}
 
             {/* Section Builder */}
-            <SectionBuilder project={project} />
+            <SectionBuilder project={project} page={activePage} />
           </div>
         </div>
       </div>

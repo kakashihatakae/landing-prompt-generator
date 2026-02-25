@@ -2,6 +2,7 @@
 export { useProjectStore } from "./store-supabase";
 export type { 
   FrontendProject as Project, 
+  FrontendPage as Page,
   FrontendSection as Section, 
   AddSectionInput,
   PendingChanges 

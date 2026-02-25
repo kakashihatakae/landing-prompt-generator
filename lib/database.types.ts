@@ -47,10 +47,51 @@ export type Database = {
           }
         ]
       }
-      sections: {
+      pages: {
         Row: {
           id: string
           project_id: string
+          name: string
+          description: string
+          is_landing_page: boolean
+          page_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          name: string
+          description?: string
+          is_landing_page?: boolean
+          page_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          description?: string
+          is_landing_page?: boolean
+          page_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      sections: {
+        Row: {
+          id: string
+          page_id: string
           name: string
           type: 'hero' | 'features' | 'testimonials' | 'pricing' | 'cta' | 'footer' | 'custom'
           description: string
@@ -64,7 +105,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          project_id: string
+          page_id: string
           name: string
           type: 'hero' | 'features' | 'testimonials' | 'pricing' | 'cta' | 'footer' | 'custom'
           description?: string
@@ -78,7 +119,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          project_id?: string
+          page_id?: string
           name?: string
           type?: 'hero' | 'features' | 'testimonials' | 'pricing' | 'cta' | 'footer' | 'custom'
           description?: string
@@ -92,10 +133,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "sections_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "sections_page_id_fkey"
+            columns: ["page_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "pages"
             referencedColumns: ["id"]
           }
         ]
@@ -117,8 +158,11 @@ export type Database = {
 }
 
 export type Project = Database['public']['Tables']['projects']['Row']
+export type Page = Database['public']['Tables']['pages']['Row']
 export type Section = Database['public']['Tables']['sections']['Row']
 export type ProjectInsert = Database['public']['Tables']['projects']['Insert']
+export type PageInsert = Database['public']['Tables']['pages']['Insert']
 export type SectionInsert = Database['public']['Tables']['sections']['Insert']
 export type ProjectUpdate = Database['public']['Tables']['projects']['Update']
+export type PageUpdate = Database['public']['Tables']['pages']['Update']
 export type SectionUpdate = Database['public']['Tables']['sections']['Update']

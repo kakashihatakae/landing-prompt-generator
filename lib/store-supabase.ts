@@ -1,14 +1,18 @@
 "use client";
 
 import { create } from "zustand";
-import type { Project, Section } from "@/lib/database.types";
-import type { ProjectWithSections } from "@/app/actions/projects";
+import type { Project, Page, Section } from "@/lib/database.types";
+import type { ProjectWithPages, PageWithSections } from "@/app/actions/projects";
 import {
   getProjects,
   createProject as createProjectAction,
   updateProject as updateProjectAction,
   deleteProject as deleteProjectAction,
   duplicateProject as duplicateProjectAction,
+  createPage as createPageAction,
+  updatePage as updatePageAction,
+  deletePage as deletePageAction,
+  reorderPages as reorderPagesAction,
   createSection as createSectionAction,
   updateSection as updateSectionAction,
   deleteSection as deleteSectionAction,
@@ -17,16 +21,42 @@ import {
 } from "@/app/actions/projects";
 
 // Frontend-compatible types
-export interface FrontendSection extends Omit<Section, "created_at" | "updated_at"> {
+export interface FrontendSection {
+  id: string;
+  pageId: string;
+  name: string;
+  type: Section["type"];
+  description: string;
+  imageUrl: string | null;
+  imageDescription: string | null;
+  styleNotes: string | null;
+  animationNotes: string | null;
+  order: number;
   createdAt: number;
   updatedAt: number;
 }
 
-export interface FrontendProject extends Omit<Project, "created_at" | "updated_at" | "global_prompt"> {
-  globalPrompt: string;
+export interface FrontendPage {
+  id: string;
+  projectId: string;
+  name: string;
+  pageDescription: string;
+  isLandingPage: boolean;
+  pageOrder: number;
   createdAt: number;
   updatedAt: number;
   sections: FrontendSection[];
+}
+
+export interface FrontendProject {
+  id: string;
+  user_id: string;
+  name: string;
+  status: Project["status"];
+  globalPrompt: string;
+  createdAt: number;
+  updatedAt: number;
+  pages: FrontendPage[];
 }
 
 // Pending changes tracking
@@ -38,19 +68,45 @@ export interface PendingChanges {
 // Helper to convert DB types to frontend types
 function toFrontendSection(section: Section): FrontendSection {
   return {
-    ...section,
+    id: section.id,
+    pageId: section.page_id,
+    name: section.name,
+    type: section.type,
+    description: section.description,
+    imageUrl: section.image_url,
+    imageDescription: section.image_description,
+    styleNotes: section.style_notes,
+    animationNotes: section.animation_notes,
+    order: section.order,
     createdAt: new Date(section.created_at).getTime(),
     updatedAt: new Date(section.updated_at).getTime(),
   };
 }
 
-function toFrontendProject(project: ProjectWithSections): FrontendProject {
+function toFrontendPage(page: PageWithSections): FrontendPage {
   return {
-    ...project,
+    id: page.id,
+    projectId: page.project_id,
+    name: page.name,
+    pageDescription: page.description,
+    isLandingPage: page.is_landing_page,
+    pageOrder: page.page_order,
+    createdAt: new Date(page.created_at).getTime(),
+    updatedAt: new Date(page.updated_at).getTime(),
+    sections: (page.sections || []).map(toFrontendSection),
+  };
+}
+
+function toFrontendProject(project: ProjectWithPages): FrontendProject {
+  return {
+    id: project.id,
+    user_id: project.user_id,
+    name: project.name,
+    status: project.status,
     globalPrompt: project.global_prompt,
     createdAt: new Date(project.created_at).getTime(),
     updatedAt: new Date(project.updated_at).getTime(),
-    sections: project.sections.map(toFrontendSection),
+    pages: (project.pages || []).map(toFrontendPage),
   };
 }
 
@@ -68,6 +124,7 @@ export interface AddSectionInput {
 interface ProjectStore {
   projects: FrontendProject[];
   activeProjectId: string | null;
+  activePageId: string | null;
   isLoading: boolean;
   error: string | null;
   lastSavedAt: number | null;
@@ -84,21 +141,33 @@ interface ProjectStore {
   duplicateProject: (id: string) => Promise<void>;
   setActiveProject: (id: string | null) => void;
   
+  // Page actions
+  addPage: (projectId: string, name: string) => Promise<void>;
+  updatePage: (projectId: string, pageId: string, updates: Partial<Pick<FrontendPage, "name" | "pageDescription">>) => Promise<void>;
+  deletePage: (projectId: string, pageId: string) => Promise<void>;
+  reorderPages: (projectId: string, pageIds: string[]) => Promise<void>;
+  setActivePage: (id: string | null) => void;
+  
   // Section actions
-  addSection: (projectId: string, section: AddSectionInput) => Promise<void>;
-  updateSection: (projectId: string, sectionId: string, updates: Partial<Omit<FrontendSection, "id" | "project_id" | "createdAt" | "updatedAt">>) => Promise<void>;
-  deleteSection: (projectId: string, sectionId: string) => Promise<void>;
-  duplicateSection: (projectId: string, sectionId: string) => Promise<void>;
-  reorderSections: (projectId: string, sectionIds: string[]) => Promise<void>;
+  addSection: (projectId: string, pageId: string, section: AddSectionInput) => Promise<void>;
+  updateSection: (projectId: string, pageId: string, sectionId: string, updates: Partial<Omit<FrontendSection, "id" | "page_id" | "createdAt" | "updatedAt">>) => Promise<void>;
+  deleteSection: (projectId: string, pageId: string, sectionId: string) => Promise<void>;
+  duplicateSection: (projectId: string, pageId: string, sectionId: string) => Promise<void>;
+  reorderSections: (projectId: string, pageId: string, sectionIds: string[]) => Promise<void>;
   
   // Save actions
   saveProject: (projectId: string) => Promise<void>;
   markUnsaved: (projectId: string, changes: Partial<PendingChanges>) => void;
+  
+  // Getters
+  getActiveProject: () => FrontendProject | undefined;
+  getActivePage: () => FrontendPage | undefined;
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   projects: [],
   activeProjectId: null,
+  activePageId: null,
   isLoading: false,
   error: null,
   lastSavedAt: null,
@@ -115,10 +184,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         lastSavedAt: Date.now(),
         hasUnsavedChanges: false,
       });
+      
       // Set first project as active if none selected
       const { activeProjectId } = get();
       if (!activeProjectId && projects.length > 0) {
-        set({ activeProjectId: projects[0].id });
+        const firstProject = projects[0];
+        set({ 
+          activeProjectId: firstProject.id,
+          activePageId: firstProject.pages[0]?.id || null,
+        });
       }
     } catch (err) {
       set({ 
@@ -136,6 +210,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set((state) => ({
         projects: [frontendProject, ...state.projects],
         activeProjectId: newProject.id,
+        activePageId: frontendProject.pages[0]?.id || null,
         isLoading: false,
         lastSavedAt: Date.now(),
         hasUnsavedChanges: false,
@@ -168,12 +243,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       await deleteProjectAction(id);
       set((state) => {
         const newProjects = state.projects.filter((p) => p.id !== id);
+        const newActiveProjectId = state.activeProjectId === id
+          ? newProjects[0]?.id || null
+          : state.activeProjectId;
+        const newActivePage = newProjects.find(p => p.id === newActiveProjectId)?.pages[0];
         return {
           projects: newProjects,
-          activeProjectId:
-            state.activeProjectId === id
-              ? newProjects[0]?.id || null
-              : state.activeProjectId,
+          activeProjectId: newActiveProjectId,
+          activePageId: newActivePage?.id || null,
           isLoading: false,
         };
       });
@@ -194,6 +271,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set((state) => ({
         projects: [frontendProject, ...state.projects],
         activeProjectId: duplicated.id,
+        activePageId: frontendProject.pages[0]?.id || null,
         isLoading: false,
         lastSavedAt: Date.now(),
         hasUnsavedChanges: false,
@@ -208,13 +286,125 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   setActiveProject: (id: string | null) => {
-    set({ activeProjectId: id });
+    const project = get().projects.find((p) => p.id === id);
+    set({ 
+      activeProjectId: id,
+      activePageId: project?.pages[0]?.id || null,
+    });
   },
 
-  addSection: async (projectId, section) => {
+  // ==================== PAGE ACTIONS ====================
+
+  addPage: async (projectId: string, name: string) => {
     set({ isLoading: true, error: null });
     try {
-      await createSectionAction(projectId, section);
+      const newPage = await createPageAction(projectId, name);
+      const frontendPage = toFrontendPage(newPage);
+      set((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === projectId
+            ? { ...p, pages: [...p.pages, frontendPage], updatedAt: Date.now() }
+            : p
+        ),
+        activePageId: newPage.id,
+        isLoading: false,
+        lastSavedAt: Date.now(),
+        hasUnsavedChanges: false,
+      }));
+    } catch (err) {
+      set({ 
+        error: err instanceof Error ? err.message : "Failed to add page",
+        isLoading: false,
+      });
+      throw err;
+    }
+  },
+
+  updatePage: async (projectId: string, pageId: string, updates) => {
+    // Optimistic update
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === projectId
+          ? {
+              ...p,
+              updatedAt: Date.now(),
+              pages: p.pages.map((page) =>
+                page.id === pageId ? { ...page, ...updates } : page
+              ),
+            }
+          : p
+      ),
+      hasUnsavedChanges: true,
+    }));
+  },
+
+  deletePage: async (projectId: string, pageId: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await deletePageAction(pageId);
+      set((state) => {
+        const project = state.projects.find((p) => p.id === projectId);
+        const remainingPages = project?.pages.filter((p) => p.id !== pageId) || [];
+        return {
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? { ...p, pages: remainingPages, updatedAt: Date.now() }
+              : p
+          ),
+          activePageId: state.activePageId === pageId
+            ? remainingPages[0]?.id || null
+            : state.activePageId,
+          isLoading: false,
+        };
+      });
+    } catch (err) {
+      set({ 
+        error: err instanceof Error ? err.message : "Failed to delete page",
+        isLoading: false,
+      });
+      throw err;
+    }
+  },
+
+  reorderPages: async (projectId: string, pageIds: string[]) => {
+    set({ isLoading: true, error: null });
+    try {
+      await reorderPagesAction(projectId, pageIds);
+      set((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === projectId
+            ? {
+                ...p,
+                updatedAt: Date.now(),
+                pages: pageIds
+                  .map((id) => p.pages.find((page) => page.id === id))
+                  .filter((page): page is FrontendPage => page !== undefined)
+                  .map((page, index) => ({ ...page, order: index })),
+              }
+            : p
+        ),
+        isLoading: false,
+        hasUnsavedChanges: true,
+      }));
+    } catch (err) {
+      set({ 
+        error: err instanceof Error ? err.message : "Failed to reorder pages",
+        isLoading: false,
+      });
+      throw err;
+    }
+  },
+
+  setActivePage: (id: string | null) => {
+    set({ activePageId: id });
+  },
+
+  // ==================== SECTION ACTIONS ====================
+
+  addSection: async (projectId: string, pageId: string, section) => {
+    set({ isLoading: true, error: null });
+    try {
+      await createSectionAction(pageId, section);
       // Reload projects to get the new section
       const projects = await getProjects();
       set({
@@ -232,7 +422,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }
   },
 
-  updateSection: async (projectId, sectionId, updates) => {
+  updateSection: async (projectId: string, pageId: string, sectionId: string, updates) => {
     // Optimistic update
     set((state) => ({
       projects: state.projects.map((p) =>
@@ -240,8 +430,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
           ? {
               ...p,
               updatedAt: Date.now(),
-              sections: p.sections.map((s) =>
-                s.id === sectionId ? { ...s, ...updates } : s
+              pages: p.pages.map((page) =>
+                page.id === pageId
+                  ? {
+                      ...page,
+                      sections: page.sections.map((s) =>
+                        s.id === sectionId ? { ...s, ...updates } : s
+                      ),
+                    }
+                  : page
               ),
             }
           : p
@@ -250,7 +447,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }));
   },
 
-  deleteSection: async (projectId, sectionId) => {
+  deleteSection: async (projectId: string, pageId: string, sectionId: string) => {
     set({ isLoading: true, error: null });
     try {
       await deleteSectionAction(sectionId);
@@ -260,9 +457,16 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
             ? {
                 ...p,
                 updatedAt: Date.now(),
-                sections: p.sections
-                  .filter((s) => s.id !== sectionId)
-                  .map((s, index) => ({ ...s, order: index })),
+                pages: p.pages.map((page) =>
+                  page.id === pageId
+                    ? {
+                        ...page,
+                        sections: page.sections
+                          .filter((s) => s.id !== sectionId)
+                          .map((s, index) => ({ ...s, order: index })),
+                      }
+                    : page
+                ),
               }
             : p
         ),
@@ -278,7 +482,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }
   },
 
-  duplicateSection: async (projectId, sectionId) => {
+  duplicateSection: async (projectId: string, pageId: string, sectionId: string) => {
     set({ isLoading: true, error: null });
     try {
       await duplicateSectionAction(sectionId);
@@ -299,20 +503,27 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     }
   },
 
-  reorderSections: async (projectId, sectionIds) => {
+  reorderSections: async (projectId: string, pageId: string, sectionIds: string[]) => {
     set({ isLoading: true, error: null });
     try {
-      await reorderSectionsAction(projectId, sectionIds);
+      await reorderSectionsAction(pageId, sectionIds);
       set((state) => ({
         projects: state.projects.map((p) =>
           p.id === projectId
             ? {
                 ...p,
                 updatedAt: Date.now(),
-                sections: sectionIds
-                  .map((id) => p.sections.find((s) => s.id === id))
-                  .filter((s): s is FrontendSection => s !== undefined)
-                  .map((s, index) => ({ ...s, order: index })),
+                pages: p.pages.map((page) =>
+                  page.id === pageId
+                    ? {
+                        ...page,
+                        sections: sectionIds
+                          .map((id) => page.sections.find((s) => s.id === id))
+                          .filter((s): s is FrontendSection => s !== undefined)
+                          .map((s, index) => ({ ...s, order: index })),
+                      }
+                    : page
+                ),
               }
             : p
         ),
@@ -335,25 +546,31 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
     set({ isLoading: true });
     try {
-      // Save the entire project state
+      // Save the project metadata
       await updateProjectAction(projectId, {
         name: project.name,
         status: project.status,
         global_prompt: project.globalPrompt,
       });
 
-      // Save all sections
-      for (const section of project.sections) {
-        await updateSectionAction(section.id, {
-          name: section.name,
-          type: section.type,
-          description: section.description,
-          image_url: section.image_url,
-          image_description: section.image_description,
-          style_notes: section.style_notes,
-          animation_notes: section.animation_notes,
-          order: section.order,
-        });
+      // Save all pages and their sections
+      for (const page of project.pages) {
+        // Update page metadata
+        await updatePageAction(page.id, { name: page.name, description: page.pageDescription });
+        
+        // Save all sections
+        for (const section of page.sections) {
+          await updateSectionAction(section.id, {
+            name: section.name,
+            type: section.type,
+            description: section.description,
+            image_url: section.imageUrl,
+            image_description: section.imageDescription,
+            style_notes: section.styleNotes,
+            animation_notes: section.animationNotes,
+            order: section.order,
+          });
+        }
       }
 
       set({
@@ -380,5 +597,16 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         hasUnsavedChanges: true,
       };
     });
+  },
+
+  getActiveProject: () => {
+    const { projects, activeProjectId } = get();
+    return projects.find((p) => p.id === activeProjectId);
+  },
+
+  getActivePage: () => {
+    const project = get().getActiveProject();
+    const { activePageId } = get();
+    return project?.pages.find((p) => p.id === activePageId);
   },
 }));

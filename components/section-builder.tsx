@@ -2,10 +2,11 @@
 
 import { useState, useCallback } from "react";
 import { Plus, LayoutGrid } from "lucide-react";
-import { Project, Section, SECTION_TEMPLATES, SectionType } from "@/lib/store";
+import { Project, Page, SECTION_TEMPLATES, SectionType } from "@/lib/store";
 import { useProjectStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/section-card";
+import { PageDescriptionEditor } from "@/components/page-description-editor";
 import {
   Dialog,
   DialogContent,
@@ -18,19 +19,20 @@ import { Input } from "@/components/ui/input";
 
 interface SectionBuilderProps {
   project: Project;
+  page: Page;
 }
 
-export function SectionBuilder({ project }: SectionBuilderProps) {
+export function SectionBuilder({ project, page }: SectionBuilderProps) {
   const { addSection } = useProjectStore();
   const [isAdding, setIsAdding] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const [selectedType, setSelectedType] = useState<SectionType>("custom");
 
-  const sortedSections = [...project.sections].sort((a, b) => a.order - b.order);
+  const sortedSections = [...page.sections].sort((a, b) => a.order - b.order);
 
   const handleAddSection = useCallback(() => {
     if (newSectionName.trim()) {
-      addSection(project.id, {
+      addSection(project.id, page.id, {
         name: newSectionName.trim(),
         type: selectedType,
         description: "",
@@ -39,10 +41,12 @@ export function SectionBuilder({ project }: SectionBuilderProps) {
       setSelectedType("custom");
       setIsAdding(false);
     }
-  }, [newSectionName, selectedType, project.id, addSection]);
+  }, [newSectionName, selectedType, project.id, page.id, addSection]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* Page Description */}
+      <PageDescriptionEditor projectId={project.id} page={page} />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
@@ -56,7 +60,7 @@ export function SectionBuilder({ project }: SectionBuilderProps) {
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Define each section of your landing page
+            Define each section of your {page.isLandingPage ? "landing page" : "page"}
           </p>
         </div>
         <Button
@@ -78,7 +82,7 @@ export function SectionBuilder({ project }: SectionBuilderProps) {
               No sections yet
             </p>
             <p className="text-xs text-muted-foreground/60 mb-4">
-              Add your first section to start building your prompt
+              Add your first section to start building your {page.isLandingPage ? "landing page" : "page"}
             </p>
             <Button
               onClick={() => setIsAdding(true)}
@@ -95,6 +99,7 @@ export function SectionBuilder({ project }: SectionBuilderProps) {
             <SectionCard
               key={section.id}
               projectId={project.id}
+              pageId={page.id}
               section={section}
             />
           ))
