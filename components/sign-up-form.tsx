@@ -48,8 +48,8 @@ export function SignUpForm({
         },
       });
       if (error) throw error;
-      // router.push("/auth/sign-up-success");
-      router.push("/dashboard")
+      router.push("/auth/sign-up-success");
+      // router.push("/dashboard")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {

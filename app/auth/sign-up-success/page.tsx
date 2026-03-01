@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function Page() {
   return (
@@ -18,11 +19,23 @@ export default function Page() {
               </CardTitle>
               <CardDescription>Check your email to confirm</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
               <p className="text-sm text-muted-foreground">
                 You&apos;ve successfully signed up. Please check your email to
                 confirm your account before signing in.
               </p>
+              <p className="text-sm text-muted-foreground">
+                Can&apos;t find the email? Check your spam or junk folder,
+                sometimes confirmation emails end up there.
+              </p>
+              <div className="pt-4 mt-2">
+                <Link
+                  href="/auth/login"
+                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Go to login page →
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>
