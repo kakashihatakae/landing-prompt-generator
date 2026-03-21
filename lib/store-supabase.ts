@@ -404,7 +404,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   addSection: async (projectId: string, pageId: string, section) => {
     set({ isLoading: true, error: null });
     try {
-      await createSectionAction(pageId, section);
+      await createSectionAction(pageId, section, projectId);
       // Reload projects to get the new section
       const projects = await getProjects();
       set({

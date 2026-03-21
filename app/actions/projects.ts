@@ -469,7 +469,8 @@ export async function reorderPages(
 // Create a new section
 export async function createSection(
   pageId: string,
-  section: Omit<SectionInsert, "page_id" | "order">
+  section: Omit<SectionInsert, "page_id" | "order">,
+  projectId: string
 ): Promise<Section> {
   const supabase = await createClient();
   
@@ -478,6 +479,7 @@ export async function createSection(
     .from("sections")
     .select("order")
     .eq("page_id", pageId)
+    .eq("project_id", projectId)
     .order("order", { ascending: false })
     .limit(1)
     .single();
@@ -490,6 +492,7 @@ export async function createSection(
       ...section,
       page_id: pageId,
       order: nextOrder,
+      project_id: projectId,
     })
     .select()
     .single();
