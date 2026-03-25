@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import base_prompt from "./base-prompt";
 
 function generatePagePrompt(page: Page): string {
   const sections = [...page.sections]
@@ -194,7 +195,7 @@ export function UtilitiesPanel({ project }: UtilitiesPanelProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ prompt: fullPrompt }),
+        body: JSON.stringify({ prompt: base_prompt + fullPrompt }),
       });
 
       if (!response.ok) {
